@@ -1,0 +1,1297 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e6a58">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Density Testing Form</title>
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: single column field record. Site header block, then one card per test (inputs left, live results on the card header), then two plan views. */
+:root {
+  --bg: #f1f4f1;
+  --surface: #ffffff;
+  --field: #f7f9f7;
+  --fg: #1b2420;
+  --muted: #5a6761;
+  --line: #d3dad5;
+  --accent: #0e6a58;
+  --accent-ink: #ffffff;
+  --out: #e4eee8;
+  --calc: #e3e7e4; --calc-fg: #66736c;
+  --ok-bg: #d4eddb; --ok-fg: #14532d; --warn-bg: #f9e7ac; --warn-fg: #6b4a00; --bad-bg: #f5d0c9; --bad-fg: #7f1d12;
+  --pt-ok: #2f9e5f; --pt-warn: #e0a800; --pt-bad: #d03a2a; --pt-none: #7a8680;
+  --danger: #a73a2a;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131916; --surface: #1b2420; --field: #151c19; --fg: #e5ebe7; --muted: #92a099;
+    --line: #2d3933; --accent: #5ecbb0; --accent-ink: #0a1e18; --out: #213029; --danger: #e48a79;
+    --calc: #26312c; --calc-fg: #93a29a; --ok-bg: #1f3d2b; --ok-fg: #9be3b4; --warn-bg: #4a3c12; --warn-fg: #f2d27a; --bad-bg: #4a1f1a; --bad-fg: #f5a99c;
+    --pt-ok: #4cc27f; --pt-warn: #f0c23a; --pt-bad: #f0705f; --pt-none: #9aa69f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131916; --surface: #1b2420; --field: #151c19; --fg: #e5ebe7; --muted: #92a099;
+  --line: #2d3933; --accent: #5ecbb0; --accent-ink: #0a1e18; --out: #213029; --danger: #e48a79;
+    --calc: #26312c; --calc-fg: #93a29a; --ok-bg: #1f3d2b; --ok-fg: #9be3b4; --warn-bg: #4a3c12; --warn-fg: #f2d27a; --bad-bg: #4a1f1a; --bad-fg: #f5a99c;
+    --pt-ok: #4cc27f; --pt-warn: #f0c23a; --pt-bad: #f0705f; --pt-none: #9aa69f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.45;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; text-wrap: balance; }
+h1 { font-size: 2.1rem; line-height: 1.05; letter-spacing: .01em; }
+h2 { font-size: 1.35rem; letter-spacing: .04em; text-transform: uppercase; }
+h3 { font-size: 1.25rem; letter-spacing: .03em; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.top { display: flex; flex-direction: column; gap: 4px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel > header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.sub { color: var(--muted); font-size: 13px; margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px 14px; }
+.grid.wide { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.f.span { grid-column: 1 / -1; }
+label, .lbl { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .03em; }
+input, select, textarea {
+  font: inherit; font-size: 16px; color: var(--fg); background: var(--field);
+  border: 1px solid var(--line); border-radius: 4px; padding: 9px 10px; min-height: 42px; width: 100%; min-width: 0;
+}
+textarea { resize: vertical; min-height: 64px; }
+input.mono, .mono { font-family: var(--font-data); }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+.group { border: 1px dashed var(--line); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group > .lbl { text-transform: uppercase; letter-spacing: .1em; font-size: 11px; }
+.test { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); display: flex; flex-direction: column; gap: 14px; padding: 14px; min-width: 0; }
+.test-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
+.results { display: flex; gap: 8px; flex-wrap: wrap; }
+.res { background: var(--calc); color: var(--fg); border-radius: 4px; padding: 6px 12px; display: flex; flex-direction: column; min-width: 150px; }
+.res.s-ok { background: var(--ok-bg); color: var(--ok-fg); }
+.res.s-warn { background: var(--warn-bg); color: var(--warn-fg); }
+.res.s-bad { background: var(--bad-bg); color: var(--bad-fg); }
+.res em { font-style: normal; font-size: 12px; font-weight: 600; min-height: 1.2em; }
+.calcbox { min-height: 42px; display: flex; align-items: center; padding: 9px 10px; border-radius: 4px; background: var(--calc); color: var(--calc-fg); font-family: var(--font-data); font-size: 16px; font-variant-numeric: tabular-nums; }
+.res span { font-size: 11px; color: inherit; opacity: .85; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
+.res output { font-family: var(--font-data); font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+button {
+  font: inherit; font-weight: 600; font-size: 14px; min-height: 42px; padding: 0 16px; border-radius: 4px;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer;
+}
+button.ghost { background: transparent; color: var(--accent); }
+button.quiet { background: transparent; color: var(--muted); border-color: var(--line); min-height: 36px; padding: 0 12px; }
+button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+input:disabled, select:disabled, textarea:disabled { background: var(--calc); color: var(--calc-fg); opacity: .6; cursor: not-allowed; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.lockmsg { margin: 0; font-weight: 600; }
+#proof-list { display: flex; flex-direction: column; gap: 6px; }
+#proof-list div { border-left: 3px solid var(--line); padding-left: 8px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.pair { display: flex; gap: 6px; }
+.pair select { width: auto; flex: 0 0 96px; }
+.pair button.sign { flex: 0 0 46px; padding: 0; font-size: 18px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; color: var(--muted); min-height: 36px; padding: 0 14px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.shot { margin-top: 14px; }
+.legend { margin-top: 10px; border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; font-family: var(--font-data); font-size: 13px; font-variant-numeric: tabular-nums; }
+.legend:empty { display: none; }
+.lg-h { font-family: var(--font-body); font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.lg { display: flex; gap: 8px; flex-wrap: wrap; }
+.lg b { min-width: 34px; }
+.shot img { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; margin-top: 8px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.plot svg { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 4px; }
+.empty { border: 1px dashed var(--line); border-radius: 4px; padding: 36px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+.links { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; }
+.links a { color: var(--accent); font-weight: 600; text-decoration: none; border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; }
+.links a:hover { border-color: var(--accent); }
+.g-bg { fill: var(--field); }
+.g-grid { stroke: var(--line); stroke-width: 1; }
+.g-pt { fill: var(--pt-none); stroke: var(--surface); stroke-width: 2; }
+.g-pt-ok { fill: var(--pt-ok); }
+.g-pt-warn { fill: var(--pt-warn); }
+.g-pt-bad { fill: var(--pt-bad); }
+.g-pt-none { fill: var(--pt-none); }
+.g-axis { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; opacity: .55; }
+.g-dim { stroke: var(--fg); stroke-width: 1.3; }
+.g-dimtxt { fill: var(--fg); font: 600 12px var(--font-body); stroke: var(--field); stroke-width: 3.5; stroke-linejoin: round; paint-order: stroke; }
+.g-ptxt { fill: var(--fg); font: 700 13px var(--font-body); stroke: var(--field); stroke-width: 3.5; stroke-linejoin: round; paint-order: stroke; }
+.sk { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.sk h4 { margin: 0; font: 600 14px var(--font-body); overflow-wrap: anywhere; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; align-self: center; }
+.k-ok { background: var(--pt-ok); }
+.k-warn { background: var(--pt-warn); }
+.k-bad { background: var(--pt-bad); }
+.k-none { background: var(--pt-none); }
+.key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-family: var(--font-body); font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.key span { display: inline-flex; align-items: center; gap: 5px; }
+.lg em.st { font-style: normal; font-family: var(--font-body); font-size: 12px; color: var(--muted); }
+.g-ref { fill: var(--fg); stroke: var(--surface); stroke-width: 2; }
+.g-line { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.g-txt { fill: var(--fg); font: 600 13px var(--font-body); }
+.g-small { fill: var(--muted); font: 500 12px var(--font-body); }
+.g-bar { stroke: var(--fg); stroke-width: 2.5; fill: none; }
+.g-arrow { fill: var(--fg); }
+#summary { font-family: var(--font-data); font-size: 12px; min-height: 140px; }
+@media (max-width: 520px) { h1 { font-size: 1.8rem; } .panel { padding: 14px; } .res { flex: 1 1 130px; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <span class="eyebrow">Field record · nuclear gauge</span>
+    <h1>Density Testing</h1>
+    <div class="actions" style="margin-top:6px"><span id="net" class="eyebrow"></span><button type="button" id="install" class="ghost" hidden>Install app</button></div>
+  </div>
+
+  <section class="panel" aria-labelledby="h-site">
+    <header><h2 id="h-site">Site visit</h2><p class="sub">Saved on this device as you type.</p></header>
+    <div class="grid wide">
+      <div class="f"><label for="h-project">Project name</label><input id="h-project" data-h="project" type="text" autocomplete="off"></div>
+      <div class="f"><label for="h-number">Project number</label><input id="h-number" data-h="number" type="text" autocomplete="off"></div>
+    </div>
+    <div class="grid">
+      <div class="f"><label for="h-date">Date of site visit</label><input id="h-date" data-h="date" type="date"></div>
+      <div class="f"><label for="h-tlow">Temperature low (°C)</label><div class="pair"><input id="h-tlow" data-h="tlow" type="text" inputmode="decimal" autocomplete="off"><button type="button" class="ghost sign" data-sign="h-tlow" aria-label="Toggle minus sign">±</button></div></div>
+      <div class="f"><label for="h-thigh">Temperature high (°C)</label><div class="pair"><input id="h-thigh" data-h="thigh" type="text" inputmode="decimal" autocomplete="off"><button type="button" class="ghost sign" data-sign="h-thigh" aria-label="Toggle minus sign">±</button></div></div>
+      <div class="f"><label for="h-weather">Weather</label><input id="h-weather" data-h="weather" type="text" list="weather-list" autocomplete="off" spellcheck="true"></div>
+      <div class="f"><label for="h-arrive">Time arrived on site</label><input id="h-arrive" data-h="arrive" type="time"></div>
+      <div class="f"><label for="h-leave">Time left site</label><input id="h-leave" data-h="leave" type="time"></div>
+      <div class="f"><label for="h-equip">Compaction equipment</label><input id="h-equip" data-h="equip" type="text" autocomplete="off" spellcheck="true" placeholder="e.g. 10 t smooth drum roller"></div>
+    </div>
+    <datalist id="weather-list"><option value="Clear"><option value="Sunny"><option value="Partly cloudy"><option value="Overcast"><option value="Light rain"><option value="Rain"><option value="Snow"><option value="Windy"><option value="Fog"></datalist>
+    <div class="group">
+      <span class="lbl">Gauge (PNG)</span>
+      <div class="grid">
+        <div class="f"><label for="h-serial">PNG serial number</label><input id="h-serial" data-h="serial" type="text" autocomplete="off" spellcheck="false" class="mono"></div>
+        <div class="f"><label for="h-dstd">Density standard count</label><input id="h-dstd" data-h="dstd" type="number" step="any" inputmode="decimal" class="mono"></div>
+        <div class="f"><label for="h-mstd">Moisture standard count</label><input id="h-mstd" data-h="mstd" type="number" step="any" inputmode="decimal" class="mono"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-data">
+    <header><h2 id="h-data">Test data</h2><p class="sub">Grey boxes are calculated. Wet density = DD × (1 + MC ÷ 100). Compaction = DD ÷ Proctor × 100. Compaction colour: green meets the minimum (up to 0.5% under rounds to it), yellow is 0.5% to 2% under, red is 2% or more under.</p></header>
+    <div id="tests" style="display:flex;flex-direction:column;gap:14px"></div>
+    <div class="actions">
+      <button type="button" id="add-test">Add test</button>
+      <span class="sub" style="align-self:center">New tests copy the material, Proctor, Proctor type, Proctor sample number, minimum compaction and reference point from the last one.</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-notes-h">
+    <header><h2 id="h-notes-h">Notes</h2><p class="sub">Site conditions, equipment, instructions received, anything the tests don't show. AI review needs a connection. Tap Copy notes for AI review, paste the notes into Claude when you are online, then paste the edited version back here.</p></header>
+    <div class="f"><label for="h-notes">Notes</label><textarea id="h-notes" data-h="notes" style="min-height:170px" placeholder="e.g. Subgrade firm and dry. Contractor to re-compact and retest T3." spellcheck="true" autocapitalize="sentences"></textarea></div>
+    <div class="actions"><button type="button" id="proof" class="ghost">Copy notes for AI review</button><button type="button" id="proof-undo" class="quiet" hidden>Undo corrections</button><span id="proof-msg" class="sub" role="status" style="align-self:center"></span></div>
+    <div id="proof-list" class="sub"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-plots">
+    <header><h2 id="h-plots">Test locations</h2><p class="sub">Updates as you enter coordinates or distances.</p></header>
+    <div class="plots">
+      <div class="plot">
+        <h3 style="margin-bottom:8px">From coordinates</h3>
+        <div id="map"></div>
+        <div class="legend" id="map-legend"></div>
+        <div class="links" style="margin-top:10px">
+          <div class="seg" role="group" aria-label="Google Maps view">
+            <button type="button" data-base="satellite" aria-pressed="true">Satellite</button>
+            <button type="button" data-base="roadmap" aria-pressed="false">Map</button>
+          </div>
+        </div>
+        <div class="links" id="map-links" style="margin-top:8px"></div>
+        <div class="actions" style="margin-top:10px"><button type="button" id="mymaps" class="ghost">Download KML for Google Maps</button></div>
+        <p class="sub" style="margin-top:6px">Saves a .kml file with every test that has coordinates. Pins are labelled T1, T2 and so on and coloured by compaction result. Open the file in Google Earth, or import it into Google My Maps (mymaps.google.com, then Import) when you are online.</p>
+        <p class="sub" style="margin-top:8px">Plan view, north up, drawn to scale from your latitude and longitude.</p>
+      </div>
+      <div class="plot">
+        <h3 style="margin-bottom:8px">From reference points</h3>
+        <div id="sketches"></div>
+        <p class="sub" style="margin-top:0">One sketch per reference point, filled from the Reference point and east/west, north/south boxes on each test. Tests that share a reference point appear on the same sketch. North up, drawn to scale.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-out">
+    <header><h2 id="h-out">Export</h2></header>
+    <div class="f" style="max-width:420px"><label for="h-view">Location view in the PDF report</label><select id="h-view" data-h="view"><option value="auto">Automatic (coordinates if entered, otherwise reference sketches)</option><option value="map">Coordinate plan</option><option value="sketch">Reference-point sketches</option></select></div>
+    <div class="actions">
+      <button type="button" id="report">Generate report (PDF)</button>
+      <button type="button" id="copy-chat" class="ghost">Copy table for chat</button>
+      <button type="button" id="copy" class="ghost">Copy results as text</button>
+      <button type="button" id="save-proj" class="ghost">Save project file</button><button type="button" id="load-proj" class="ghost">Open project file</button><input id="load-file" type="file" accept=".json,application/json" hidden><button type="button" id="clear" class="danger">Clear form</button>
+      <span id="msg" class="sub" role="status" style="align-self:center"></span>
+    </div>
+    <div class="f" id="summary-wrap" hidden><label for="summary">Select and copy</label><textarea id="summary" readonly></textarea></div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+(function () {
+  var KEY = 'density-form-v1';
+  var DEPTHS = [50, 100, 150, 200, 250, 300];
+  var testsEl = document.getElementById('tests');
+  var uid = 0;
+  var base = 'satellite';
+  try { var savedBase = localStorage.getItem('density-base'); if (savedBase === 'roadmap' || savedBase === 'satellite') base = savedBase; } catch (e) {}
+
+  function $(id) { return document.getElementById(id); }
+  function num(v) { var n = parseFloat(String(v).replace(/−/g, '-').replace(',', '.')); return isFinite(n) ? n : NaN; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function val(el, k) { return el.querySelector('[data-f="' + k + '"]').value; }
+
+  function field(n, key, label, attrs, cls) {
+    return '<div class="f ' + (cls || '') + '"><label for="t' + n + '-' + key + '">' + label + '</label>' +
+      '<input id="t' + n + '-' + key + '" data-f="' + key + '" ' + attrs + '></div>';
+  }
+
+  function signField(n, key, label, attrs) {
+    return '<div class="f"><label for="t' + n + '-' + key + '">' + label + '</label><div class="pair">' +
+      '<input id="t' + n + '-' + key + '" data-f="' + key + '" type="text" inputmode="decimal" autocomplete="off" class="mono" ' + attrs + '>' +
+      '<button type="button" class="ghost sign" data-sign="t' + n + '-' + key + '" aria-label="Toggle minus sign">±</button></div></div>';
+  }
+
+  function addTest(d) {
+    d = d || {};
+    uid++;
+    var n = uid;
+    var el = document.createElement('article');
+    el.className = 'test';
+    var depthOpts = '<option value="">Select</option>' + DEPTHS.map(function (x) { return '<option value="' + x + '">' + x + ' mm</option>'; }).join('');
+    el.innerHTML =
+      '<div class="test-head"><h3>Test <span class="tn"></span></h3>' +
+      '<div class="results"><div class="res comp"><span>Compaction</span><output class="o-comp">—</output><em class="o-stat"></em></div></div>' +
+      '<button type="button" class="quiet" data-act="del">Remove</button></div>' +
+      '<div class="grid">' +
+      field(n, 'mat', 'Material type', 'type="text" autocomplete="off" spellcheck="true"') +
+      field(n, 'proc', 'Proctor (kg/m³)', 'type="number" step="any" inputmode="decimal" class="mono"') +
+      '<div class="f"><label for="t' + n + '-ptype">Proctor type</label><select id="t' + n + '-ptype" data-f="ptype"><option>Standard</option><option>Modified</option></select></div>' +
+      field(n, 'psn', 'Proctor sample number', 'type="text" autocomplete="off" autocorrect="off" spellcheck="false" class="mono"') +
+      field(n, 'minc', 'Min. compaction required (%)', 'type="number" step="any" inputmode="decimal" class="mono"') +
+      '<div class="f"><label for="t' + n + '-depth">Probe depth (mm)</label><select id="t' + n + '-depth" data-f="depth">' + depthOpts + '</select></div>' +
+      field(n, 'dd', 'Dry density (kg/m³)', 'type="number" step="any" inputmode="decimal" class="mono"') +
+      field(n, 'mc', 'Moisture content (%)', 'type="number" step="any" inputmode="decimal" class="mono"') +
+      '<div class="f"><label for="t' + n + '-wet">Wet density (kg/m³), calculated</label><output id="t' + n + '-wet" class="calcbox o-wet">—</output></div>' +
+      '</div>' +
+      '<div class="cols">' +
+      '<div class="group"><span class="lbl">Lift or elevation</span>' +
+      field(n, 'lift', 'Lift / elevation value', 'type="text" autocomplete="off" placeholder="e.g. Lift 3, or 412.35 m"') +
+      '<div class="f"><label for="t' + n + '-liftnote">Explain the lift and what it is referenced to</label><textarea id="t' + n + '-liftnote" data-f="liftnote" spellcheck="true" autocapitalize="sentences" placeholder="e.g. Third 300 mm lift above subgrade, referenced to top of culvert"></textarea></div></div>' +
+      '<div class="group"><span class="lbl">Location</span><p class="sub lockmsg" hidden></p>' +
+      '<div class="grid">' + signField(n, 'lat', 'Latitude', 'placeholder="49.123456"') +
+      signField(n, 'lon', 'Longitude', 'placeholder="-123.123456"') + '</div>' +
+      '<div class="f"><label for="t' + n + '-locdesc">Reference point</label><textarea id="t' + n + '-locdesc" data-f="locdesc" placeholder="e.g. WP103, NE corner of culvert headwall"></textarea></div>' +
+      '<div class="grid">' +
+      '<div class="f"><label for="t' + n + '-ew">East or west of reference (m)</label><div class="pair"><input id="t' + n + '-ew" data-f="ew" type="number" step="any" min="0" inputmode="decimal" class="mono"><select id="t' + n + '-ewdir" data-f="ewdir" aria-label="East or west"><option>East</option><option>West</option></select></div></div>' +
+      '<div class="f"><label for="t' + n + '-ns">North or south of reference (m)</label><div class="pair"><input id="t' + n + '-ns" data-f="ns" type="number" step="any" min="0" inputmode="decimal" class="mono"><select id="t' + n + '-nsdir" data-f="nsdir" aria-label="North or south"><option>North</option><option>South</option></select></div></div>' +
+      '</div>' +
+      '</div></div>';
+    testsEl.appendChild(el);
+    Array.prototype.forEach.call(el.querySelectorAll('[data-f]'), function (i) {
+      if (d[i.dataset.f] != null) i.value = d[i.dataset.f];
+    });
+    renumber();
+    calc(el);
+    return el;
+  }
+
+  function renumber() {
+    var cards = testsEl.children;
+    Array.prototype.forEach.call(cards, function (c, i) {
+      c.querySelector('.tn').textContent = i + 1;
+      c.querySelector('[data-act="del"]').hidden = cards.length < 2;
+    });
+  }
+
+  function lockTest(el) {
+    var f = function (k) { return val(el, k).trim() !== ''; };
+    var coords = f('lat') || f('lon'), ref = f('locdesc') || f('ew') || f('ns');
+    var lockRef = coords && !ref, lockCoords = ref && !coords;
+    ['locdesc', 'ew', 'ewdir', 'ns', 'nsdir'].forEach(function (k) { el.querySelector('[data-f="' + k + '"]').disabled = lockRef; });
+    ['lat', 'lon'].forEach(function (k) { el.querySelector('[data-f="' + k + '"]').disabled = lockCoords; });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-sign]'), function (b) { b.disabled = lockCoords; });
+    var m = el.querySelector('.lockmsg');
+    m.hidden = !(lockRef || lockCoords);
+    m.textContent = lockRef ? 'Coordinates entered. Clear latitude and longitude to use a reference point instead.'
+      : lockCoords ? 'Reference point entered. Clear the reference point and offsets to use coordinates instead.' : '';
+  }
+
+  function compStatus(comp, req) {
+    if (!isFinite(comp) || !isFinite(req)) return { k: '', t: '' };
+    var c = Math.round(comp * 10) / 10, short = req - c;
+    if (short >= 2 - 1e-9) return { k: 'bad', t: 'Below spec' };
+    if (short > 0.5 + 1e-9) return { k: 'warn', t: 'Marginal' };
+    return { k: 'ok', t: 'Meets spec' };
+  }
+
+  function calc(el) {
+    lockTest(el);
+    var dd = num(val(el, 'dd')), mc = num(val(el, 'mc')), pr = num(val(el, 'proc'));
+    var wet = (isFinite(dd) && isFinite(mc)) ? dd * (1 + mc / 100) : NaN;
+    var comp = (isFinite(dd) && isFinite(pr) && pr > 0) ? dd / pr * 100 : NaN;
+    el.querySelector('.o-wet').textContent = isFinite(wet) ? wet.toFixed(0) : '—';
+    el.querySelector('.o-comp').textContent = isFinite(comp) ? comp.toFixed(1) + ' %' : '—';
+    var st = compStatus(comp, num(val(el, 'minc')));
+    var chip = el.querySelector('.res.comp');
+    chip.classList.remove('s-ok', 's-warn', 's-bad');
+    if (st.k) chip.classList.add('s-' + st.k);
+    el.querySelector('.o-stat').textContent = st.t || (isFinite(comp) ? 'Enter min. required' : '');
+    return { wet: wet, comp: comp, st: st };
+  }
+
+  function collect() {
+    var h = {};
+    Array.prototype.forEach.call(document.querySelectorAll('[data-h]'), function (i) { h[i.dataset.h] = i.value; });
+    var t = Array.prototype.map.call(testsEl.children, function (el) {
+      var o = {};
+      Array.prototype.forEach.call(el.querySelectorAll('[data-f]'), function (i) { o[i.dataset.f] = i.value; });
+      return o;
+    });
+    return { h: h, t: t };
+  }
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(collect())); } catch (e) {} }
+
+  function restore() {
+    var data = null;
+    try { data = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+    if (data && data.h) {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-h]'), function (i) {
+        if (data.h[i.dataset.h] != null) i.value = data.h[i.dataset.h];
+      });
+    }
+    if (data && data.t && data.t.length) data.t.forEach(function (d) { addTest(d); });
+    else addTest();
+  }
+
+  /* ---------- plan drawing ---------- */
+  var NICE = [0.5, 1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000];
+  var EXPORT_CSS = '.g-bg{fill:#f7f9f7}.g-grid{stroke:#d3dad5;stroke-width:1}.g-pt{fill:#7a8680;stroke:#fff;stroke-width:2}.g-pt-ok{fill:#2f9e5f}.g-pt-warn{fill:#e0a800}.g-pt-bad{fill:#d03a2a}.g-pt-none{fill:#7a8680}.g-ref{fill:#1b2420;stroke:#fff;stroke-width:2}.g-line{stroke:#5a6761;stroke-width:1.2;stroke-dasharray:5 4}.g-txt{fill:#1b2420;font:600 13px Helvetica,Arial,sans-serif}.g-small{fill:#5a6761;font:500 12px Helvetica,Arial,sans-serif}.g-bar{stroke:#1b2420;stroke-width:2.5;fill:none}.g-arrow{fill:#1b2420}';
+  function plot(pts, ref, label, exp) {
+    var W = 640, H = 440, M = 40;
+    var all = ref ? pts.concat([ref]) : pts;
+    var xs = all.map(function (p) { return p.x; }), ys = all.map(function (p) { return p.y; });
+    var minx = Math.min.apply(null, xs), maxx = Math.max.apply(null, xs);
+    var miny = Math.min.apply(null, ys), maxy = Math.max.apply(null, ys);
+    var spanX = Math.max((maxx - minx) * 1.3, 20), spanY = Math.max((maxy - miny) * 1.3, 20);
+    var s = Math.min((W - 2 * M) / spanX, (H - 2 * M - 16) / spanY);
+    var midx = (minx + maxx) / 2, midy = (miny + maxy) / 2;
+    var X = function (x) { return W / 2 + (x - midx) * s; };
+    var Y = function (y) { return H / 2 - (y - midy) * s; };
+    var raw = 130 / s, nice = NICE[0];
+    NICE.forEach(function (v) { if (v <= raw) nice = v; });
+    var out = exp
+      ? '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"><style>' + EXPORT_CSS + '</style><rect class="g-bg" width="' + W + '" height="' + H + '"/>'
+      : '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + '"><rect class="g-bg" width="' + W + '" height="' + H + '"/>';
+    var gx0 = Math.ceil((midx - (W / 2) / s) / nice), gx1 = Math.floor((midx + (W / 2) / s) / nice);
+    var gy0 = Math.ceil((midy - (H / 2) / s) / nice), gy1 = Math.floor((midy + (H / 2) / s) / nice);
+    for (var gx = gx0; gx <= gx1; gx++) out += '<line class="g-grid" x1="' + X(gx * nice).toFixed(1) + '" y1="0" x2="' + X(gx * nice).toFixed(1) + '" y2="' + H + '"/>';
+    for (var gy = gy0; gy <= gy1; gy++) out += '<line class="g-grid" x1="0" y1="' + Y(gy * nice).toFixed(1) + '" x2="' + W + '" y2="' + Y(gy * nice).toFixed(1) + '"/>';
+    if (ref) pts.forEach(function (p) {
+      out += '<line class="g-line" x1="' + X(ref.x).toFixed(1) + '" y1="' + Y(ref.y).toFixed(1) + '" x2="' + X(p.x).toFixed(1) + '" y2="' + Y(p.y).toFixed(1) + '"/>';
+    });
+    pts.forEach(function (p) {
+      out += '<circle class="g-pt g-pt-' + (p.k || 'none') + '" cx="' + X(p.x).toFixed(1) + '" cy="' + Y(p.y).toFixed(1) + '" r="7"/>' +
+        '<text class="g-txt" x="' + (X(p.x) + 11).toFixed(1) + '" y="' + (Y(p.y) - 9).toFixed(1) + '">T' + p.i + '</text>';
+    });
+    if (ref) {
+      var rx = X(ref.x), ry = Y(ref.y);
+      out += '<path class="g-ref" d="M' + rx.toFixed(1) + ' ' + (ry - 10).toFixed(1) + ' L' + (rx + 9).toFixed(1) + ' ' + (ry + 7).toFixed(1) + ' L' + (rx - 9).toFixed(1) + ' ' + (ry + 7).toFixed(1) + ' Z"/>' +
+        '<text class="g-txt" x="' + (rx + 13).toFixed(1) + '" y="' + (ry + 22).toFixed(1) + '">' + esc(ref.label) + '</text>';
+    }
+    var bw = nice * s, bx = 18, by = H - 16;
+    out += '<path class="g-bar" d="M' + bx + ' ' + (by - 6) + ' V' + by + ' H' + (bx + bw).toFixed(1) + ' V' + (by - 6) + '"/>' +
+      '<text class="g-small" x="' + bx + '" y="' + (by - 12) + '">' + nice + ' m</text>';
+    out += '<path class="g-arrow" d="M' + (W - 28) + ' 14 L' + (W - 20) + ' 38 L' + (W - 28) + ' 32 L' + (W - 36) + ' 38 Z"/>' +
+      '<text class="g-txt" x="' + (W - 28) + '" y="56" text-anchor="middle">N</text>';
+    out += '<text class="g-small" x="' + (W - 12) + '" y="' + (H - 12) + '" text-anchor="end">grid ' + nice + ' m</text></svg>';
+    return out;
+  }
+
+  var DIM_CSS = '.g-axis{stroke:#5a6761;stroke-width:1;stroke-dasharray:4 4;opacity:.55}.g-dim{stroke:#1b2420;stroke-width:1.3}.g-dimtxt{fill:#1b2420;font:600 12px Helvetica,Arial,sans-serif;stroke:#f7f9f7;stroke-width:3.5;stroke-linejoin:round;paint-order:stroke}.g-ptxt{fill:#1b2420;font:700 13px Helvetica,Arial,sans-serif;stroke:#f7f9f7;stroke-width:3.5;stroke-linejoin:round;paint-order:stroke}';
+
+  /* Sketch for one reference point: east-west and north-south dimension lines, labels placed so they do not overlap. */
+  function plotSketch(pts, name, exp) {
+    var W = 640, H = 440, M = 56;
+    var xs = pts.map(function (p) { return p.x; }).concat([0]), ys = pts.map(function (p) { return p.y; }).concat([0]);
+    var minx = Math.min.apply(null, xs), maxx = Math.max.apply(null, xs);
+    var miny = Math.min.apply(null, ys), maxy = Math.max.apply(null, ys);
+    var spanX = Math.max((maxx - minx) * 1.25, 20), spanY = Math.max((maxy - miny) * 1.25, 20);
+    var s = Math.min((W - 2 * M) / spanX, (H - 2 * M) / spanY);
+    var midx = (minx + maxx) / 2, midy = (miny + maxy) / 2;
+    var X = function (x) { return W / 2 + (x - midx) * s; };
+    var Y = function (y) { return H / 2 - (y - midy) * s; };
+    var raw = 130 / s, nice = NICE[0];
+    NICE.forEach(function (v) { if (v <= raw) nice = v; });
+    var f1 = function (v) { return v.toFixed(1); };
+    var out = exp
+      ? '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"><style>' + EXPORT_CSS + DIM_CSS + '</style><rect class="g-bg" width="' + W + '" height="' + H + '"/>'
+      : '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Sketch of test locations from ' + esc(name) + '"><rect class="g-bg" width="' + W + '" height="' + H + '"/>';
+    var gx0 = Math.ceil((midx - (W / 2) / s) / nice), gx1 = Math.floor((midx + (W / 2) / s) / nice);
+    var gy0 = Math.ceil((midy - (H / 2) / s) / nice), gy1 = Math.floor((midy + (H / 2) / s) / nice);
+    for (var gx = gx0; gx <= gx1; gx++) out += '<line class="g-grid" x1="' + f1(X(gx * nice)) + '" y1="0" x2="' + f1(X(gx * nice)) + '" y2="' + H + '"/>';
+    for (var gy = gy0; gy <= gy1; gy++) out += '<line class="g-grid" x1="0" y1="' + f1(Y(gy * nice)) + '" x2="' + W + '" y2="' + f1(Y(gy * nice)) + '"/>';
+
+    var rx = X(0), ry = Y(0);
+    var placed = [];
+    function rect(x0, y0, x1, y1, w) { return { x0: x0, y0: y0, x1: x1, y1: y1, w: w || 8 }; }
+    function ov(a, b) { return !(a.x1 <= b.x0 || a.x0 >= b.x1 || a.y1 <= b.y0 || a.y0 >= b.y1); }
+    function pick(cands) {
+      var best = null, bs = 1e9;
+      for (var i = 0; i < cands.length; i++) {
+        var r = cands[i].r, n = 0, rp = { x0: r.x0 - 2, y0: r.y0 - 2, x1: r.x1 + 2, y1: r.y1 + 2 };
+        for (var j = 0; j < placed.length; j++) if (ov(rp, placed[j])) n += placed[j].w;
+        if (r.x0 < 3 || r.x1 > W - 3 || r.y0 < 3 || r.y1 > H - 3) n += 30;
+        if (n < bs) { bs = n; best = cands[i]; if (n === 0) break; }
+      }
+      best.r.w = 10;
+      placed.push(best.r);
+      return best;
+    }
+    function tw(t, fs) { return t.length * fs * 0.6 + 4; }
+
+    placed.push(rect(rx - 11, ry - 12, rx + 11, ry + 9));
+    placed.push(rect(W - 42, 6, W - 12, 64));
+    placed.push(rect(10, H - 36, 10 + nice * s + 40, H - 4));
+    placed.push(rect(W - 100, H - 26, W - 6, H - 6));
+
+    var ax0 = X(minx) - 8, ax1 = X(maxx) + 8, ay0 = Y(maxy) - 8, ay1 = Y(miny) + 8;
+    out += '<line class="g-axis" x1="' + f1(ax0) + '" y1="' + f1(ry) + '" x2="' + f1(ax1) + '" y2="' + f1(ry) + '"/>' +
+      '<line class="g-axis" x1="' + f1(rx) + '" y1="' + f1(ay0) + '" x2="' + f1(rx) + '" y2="' + f1(ay1) + '"/>';
+    placed.push(rect(ax0, ry - 1, ax1, ry + 1, 1), rect(rx - 1, ay0, rx + 1, ay1, 1));
+
+    var dims = [];
+    pts.forEach(function (p) {
+      var px = X(p.x), py = Y(p.y);
+      if (Math.abs(p.x) > 1e-9) dims.push({ h: true, a: rx, b: px, y: py, text: fmtM(Math.abs(p.x)) + ' m ' + (p.x < 0 ? 'W' : 'E') });
+      if (Math.abs(p.y) > 1e-9) dims.push({ h: false, a: ry, b: py, x: px, text: fmtM(Math.abs(p.y)) + ' m ' + (p.y < 0 ? 'S' : 'N') });
+    });
+    dims.forEach(function (d) {
+      if (d.h) {
+        out += '<line class="g-dim" x1="' + f1(d.a) + '" y1="' + f1(d.y) + '" x2="' + f1(d.b) + '" y2="' + f1(d.y) + '"/>' +
+          '<line class="g-dim" x1="' + f1(d.a) + '" y1="' + f1(d.y - 4) + '" x2="' + f1(d.a) + '" y2="' + f1(d.y + 4) + '"/>' +
+          '<line class="g-dim" x1="' + f1(d.b) + '" y1="' + f1(d.y - 4) + '" x2="' + f1(d.b) + '" y2="' + f1(d.y + 4) + '"/>';
+        placed.push(rect(Math.min(d.a, d.b), d.y - 1, Math.max(d.a, d.b), d.y + 1, 3));
+      } else {
+        out += '<line class="g-dim" x1="' + f1(d.x) + '" y1="' + f1(d.a) + '" x2="' + f1(d.x) + '" y2="' + f1(d.b) + '"/>' +
+          '<line class="g-dim" x1="' + f1(d.x - 4) + '" y1="' + f1(d.a) + '" x2="' + f1(d.x + 4) + '" y2="' + f1(d.a) + '"/>' +
+          '<line class="g-dim" x1="' + f1(d.x - 4) + '" y1="' + f1(d.b) + '" x2="' + f1(d.x + 4) + '" y2="' + f1(d.b) + '"/>';
+        placed.push(rect(d.x - 1, Math.min(d.a, d.b), d.x + 1, Math.max(d.a, d.b), 3));
+      }
+    });
+
+    out += '<path class="g-ref" d="M' + f1(rx) + ' ' + f1(ry - 10) + ' L' + f1(rx + 9) + ' ' + f1(ry + 7) + ' L' + f1(rx - 9) + ' ' + f1(ry + 7) + ' Z"/>';
+    var labels = '';
+    pts.forEach(function (p) {
+      var px = X(p.x), py = Y(p.y);
+      out += '<circle class="g-pt g-pt-' + (p.k || 'none') + '" cx="' + f1(px) + '" cy="' + f1(py) + '" r="7"/>';
+      placed.push(rect(px - 9, py - 9, px + 9, py + 9));
+    });
+    pts.forEach(function (p) {
+      var px = X(p.x), py = Y(p.y), t = 'T' + p.i, w = tw(t, 13);
+      var c = [];
+      [9].forEach(function (o) {
+        c.push({ r: rect(px + o, py - o - 10, px + o + w, py - o + 4) });
+        c.push({ r: rect(px + o, py + o - 4, px + o + w, py + o + 10) });
+        c.push({ r: rect(px - o - w, py - o - 10, px - o, py - o + 4) });
+        c.push({ r: rect(px - o - w, py + o - 4, px - o, py + o + 10) });
+        c.push({ r: rect(px - w / 2, py - o - 14, px + w / 2, py - o) });
+        c.push({ r: rect(px - w / 2, py + o, px + w / 2, py + o + 14) });
+      });
+      var b = pick(c);
+      labels += '<text class="g-ptxt" x="' + f1(b.r.x0 + 2) + '" y="' + f1(b.r.y1 - 3) + '">' + t + '</text>';
+    });
+
+    var nm = name.length > 34 ? name.slice(0, 33) + '…' : name, nw = tw(nm, 13);
+    var rc = [
+      { r: rect(rx + 12, ry + 4, rx + 12 + nw, ry + 18), x: rx + 14, a: 'start', y: ry + 15 },
+      { r: rect(rx - 12 - nw, ry + 4, rx - 12, ry + 18), x: rx - 14, a: 'end', y: ry + 15 },
+      { r: rect(rx + 12, ry - 20, rx + 12 + nw, ry - 6), x: rx + 14, a: 'start', y: ry - 9 },
+      { r: rect(rx - 12 - nw, ry - 20, rx - 12, ry - 6), x: rx - 14, a: 'end', y: ry - 9 },
+      { r: rect(rx - nw / 2, ry + 12, rx + nw / 2, ry + 26), x: rx, a: 'middle', y: ry + 23 },
+      { r: rect(rx - nw / 2, ry - 30, rx + nw / 2, ry - 14), x: rx, a: 'middle', y: ry - 17 }
+    ];
+    var rb = pick(rc);
+    labels += '<text class="g-ptxt" x="' + f1(rb.x) + '" y="' + f1(rb.y) + '" text-anchor="' + rb.a + '">' + esc(nm) + '</text>';
+
+    var TS = [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8, 0.1, 0.9, 0.0, 1.0, -0.12, 1.12];
+    var order = dims.slice().sort(function (p, q) { return Math.abs(p.b - p.a) - Math.abs(q.b - q.a); });
+    order.forEach(function (d) {
+      var w = tw(d.text, 12), c = [];
+      [4, 17].forEach(function (off) {
+        TS.forEach(function (t) {
+          if (d.h) {
+            var cx = d.a + (d.b - d.a) * t;
+            c.push({ r: rect(cx - w / 2, d.y - off - 13, cx + w / 2, d.y - off), x: cx, a: 'middle', y: d.y - off - 3 });
+            c.push({ r: rect(cx - w / 2, d.y + off, cx + w / 2, d.y + off + 13), x: cx, a: 'middle', y: d.y + off + 10 });
+          } else {
+            var cy = d.a + (d.b - d.a) * t;
+            c.push({ r: rect(d.x + off + 1, cy - 7, d.x + off + 1 + w, cy + 7), x: d.x + off + 3, a: 'start', y: cy + 4 });
+            c.push({ r: rect(d.x - off - 1 - w, cy - 7, d.x - off - 1, cy + 7), x: d.x - off - 3, a: 'end', y: cy + 4 });
+          }
+        });
+      });
+      if (d.h) {
+        var dx = d.b > d.a ? 1 : -1, ca = d.a - dx * (w / 2 + 6), cb = d.b + dx * (w / 2 + 12);
+        c.push({ r: rect(ca - w / 2, d.y - 7, ca + w / 2, d.y + 7), x: ca, a: 'middle', y: d.y + 4 });
+        c.push({ r: rect(cb - w / 2, d.y - 7, cb + w / 2, d.y + 7), x: cb, a: 'middle', y: d.y + 4 });
+      } else {
+        var dy = d.b > d.a ? 1 : -1, ya = d.a - dy * 11, yb = d.b + dy * 18;
+        c.push({ r: rect(d.x - w / 2, ya - 7, d.x + w / 2, ya + 7), x: d.x, a: 'middle', y: ya + 4 });
+        c.push({ r: rect(d.x - w / 2, yb - 7, d.x + w / 2, yb + 7), x: d.x, a: 'middle', y: yb + 4 });
+      }
+      var b = pick(c);
+      labels += '<text class="g-dimtxt" x="' + f1(b.x) + '" y="' + f1(b.y) + '" text-anchor="' + b.a + '">' + d.text + '</text>';
+    });
+    out += labels;
+
+    var bw = nice * s, bx = 18, by = H - 16;
+    out += '<path class="g-bar" d="M' + bx + ' ' + (by - 6) + ' V' + by + ' H' + f1(bx + bw) + ' V' + (by - 6) + '"/>' +
+      '<text class="g-small" x="' + bx + '" y="' + (by - 12) + '">' + nice + ' m</text>';
+    out += '<path class="g-arrow" d="M' + (W - 28) + ' 14 L' + (W - 20) + ' 38 L' + (W - 28) + ' 32 L' + (W - 36) + ' 38 Z"/>' +
+      '<text class="g-txt" x="' + (W - 28) + '" y="56" text-anchor="middle">N</text>';
+    out += '<text class="g-small" x="' + (W - 12) + '" y="' + (H - 12) + '" text-anchor="end">grid ' + nice + ' m</text></svg>';
+    return out;
+  }
+
+  function emptyBox(msg) { return '<div class="empty">' + msg + '</div>'; }
+
+  function fmtM(v) { return String(Number(v.toFixed(2))); }
+  function fmtOff(p) {
+    return fmtM(Math.abs(p.x)) + ' m ' + (p.x < 0 ? 'W' : 'E') + ', ' + fmtM(Math.abs(p.y)) + ' m ' + (p.y < 0 ? 'S' : 'N');
+  }
+  function cardGeo(el) {
+    var lat = num(val(el, 'lat')), lon = num(val(el, 'lon'));
+    if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) return { lat: lat, lon: lon };
+    return null;
+  }
+  function cardRel(el) {
+    var e = num(val(el, 'ew')), nn = num(val(el, 'ns'));
+    if (!isFinite(e) && !isFinite(nn)) return null;
+    e = isFinite(e) ? Math.abs(e) : 0;
+    nn = isFinite(nn) ? Math.abs(nn) : 0;
+    return { x: val(el, 'ewdir') === 'West' ? -e : e, y: val(el, 'nsdir') === 'South' ? -nn : nn };
+  }
+  function keyHtml() {
+    return '<div class="key"><span><i class="dot k-ok"></i>Meets spec</span><span><i class="dot k-warn"></i>Marginal</span><span><i class="dot k-bad"></i>Below spec</span><span><i class="dot k-none"></i>No minimum</span></div>';
+  }
+  function locData() {
+    var geo = [], rel = [];
+    Array.prototype.forEach.call(testsEl.children, function (el, i) {
+      var g = cardGeo(el), r = cardRel(el), cs = calc(el), mk = cs.st.k, mt = cs.st.t, mc = isFinite(cs.comp) ? cs.comp.toFixed(1) : '';
+      if (g) geo.push({ i: i + 1, lat: g.lat, lon: g.lon, k: mk, t: mt, c: mc });
+      if (r) rel.push({ i: i + 1, x: r.x, y: r.y, k: mk, t: mt, c: mc, ref: val(el, 'locdesc').trim().replace(/\s+/g, ' ') });
+    });
+    var L = { geo: geo, rel: rel, pts: [], lat0: 0, lon0: 0, groups: [] };
+    var gm = {};
+    rel.forEach(function (q) {
+      var key = q.ref.toLowerCase();
+      if (!gm[key]) { gm[key] = { name: q.ref || 'Reference point (not named)', pts: [] }; L.groups.push(gm[key]); }
+      gm[key].pts.push(q);
+    });
+    if (geo.length) {
+      L.lat0 = geo.reduce(function (a, p) { return a + p.lat; }, 0) / geo.length;
+      L.lon0 = geo.reduce(function (a, p) { return a + p.lon; }, 0) / geo.length;
+      var kx = 111320 * Math.cos(L.lat0 * Math.PI / 180), ky = 110540;
+      L.pts = geo.map(function (p) { return { i: p.i, x: (p.lon - L.lon0) * kx, y: (p.lat - L.lat0) * ky, k: p.k }; });
+    }
+    return L;
+  }
+
+  function draw() {
+    var L = locData();
+    var mapEl = $('map'), links = $('map-links');
+    if (!L.geo.length) {
+      mapEl.innerHTML = emptyBox('Enter latitude and longitude on a test to plot it here.');
+      $('map-legend').innerHTML = '';
+      links.innerHTML = '';
+    } else {
+      mapEl.innerHTML = plot(L.pts, null, 'Plan of test locations from coordinates');
+      $('map-legend').innerHTML = '<div class="lg-h">Latitude, longitude (decimal degrees)</div>' + keyHtml() + L.geo.map(function (p) {
+        return '<div class="lg"><i class="dot k-' + (p.k || 'none') + '"></i><b>T' + p.i + '</b><span>= ' + p.lat.toFixed(6) + ', ' + p.lon.toFixed(6) + '</span><em class="st">' + esc(p.t) + '</em></div>';
+      }).join('');
+      var html = '<a href="https://www.google.com/maps/@?api=1&map_action=map&center=' + L.lat0.toFixed(6) + ',' + L.lon0.toFixed(6) + '&zoom=19&basemap=' + base + '" target="_blank" rel="noopener">Open ' + (base === 'satellite' ? 'satellite' : 'map') + ' view in Google Maps</a>';
+      L.geo.forEach(function (p) {
+        html += '<a href="https://www.google.com/maps/search/?api=1&query=' + p.lat.toFixed(6) + ',' + p.lon.toFixed(6) + '" target="_blank" rel="noopener">T' + p.i + '</a>';
+      });
+      links.innerHTML = html;
+    }
+    var host = $('sketches');
+    if (!L.groups.length) {
+      host.innerHTML = emptyBox('Enter a reference point and the east/west and north/south offsets on a test to draw its sketch.');
+    } else {
+      host.innerHTML = L.groups.map(function (g) {
+        return '<div class="sk"><h4>Reference point: ' + esc(g.name) + '</h4>' + plotSketch(g.pts, g.name, false) +
+          '<div class="legend"><div class="lg-h">Offsets from ' + esc(g.name) + '</div>' + keyHtml() + g.pts.map(function (p) {
+            return '<div class="lg"><i class="dot k-' + (p.k || 'none') + '"></i><b>T' + p.i + '</b><span>= ' + fmtOff(p) + '</span><em class="st">' + esc(p.t) + '</em></div>';
+          }).join('') + '</div></div>';
+      }).join('');
+    }
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('input', function (e) {
+    var card = e.target.closest ? e.target.closest('.test') : null;
+    if (card) calc(card);
+    save();
+    draw();
+  });
+  document.addEventListener('change', function (e) { var c = e.target.closest ? e.target.closest('.test') : null; if (c) calc(c); save(); draw(); });
+
+  document.addEventListener('click', function (e) {
+    var sb = e.target.closest ? e.target.closest('[data-sign]') : null;
+    if (!sb) return;
+    var inp = $(sb.dataset.sign), v = inp.value.trim();
+    inp.value = v.charAt(0) === '-' ? v.slice(1) : '-' + v;
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.focus();
+  });
+
+  testsEl.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act="del"]');
+    if (!b) return;
+    var card = b.closest('.test');
+    if (testsEl.children.length > 1) { card.remove(); renumber(); save(); draw(); }
+  });
+
+  $('add-test').addEventListener('click', function () {
+    var last = testsEl.lastElementChild;
+    var seed = last ? { mat: val(last, 'mat'), proc: val(last, 'proc'), ptype: val(last, 'ptype'), minc: val(last, 'minc'), psn: val(last, 'psn'), locdesc: val(last, 'locdesc') } : {};
+    var el = addTest(seed);
+    save(); draw();
+    var first = el.querySelector('[data-f="depth"]');
+    if (first) first.focus();
+  });
+
+  var msg = $('msg');
+  function say(t) { msg.textContent = t; setTimeout(function () { if (msg.textContent === t) msg.textContent = ''; }, 3500); }
+
+  function summaryText() {
+    var d = collect().h;
+    var L = [];
+    L.push('Project: ' + (d.project || '') + ' (' + (d.number || '') + ')');
+    L.push('Date: ' + (d.date || '') + '   Temp: ' + (d.tlow || '') + ' to ' + (d.thigh || '') + ' °C   Weather: ' + (d.weather || ''));
+    L.push('On site: ' + (d.arrive || '') + ' to ' + (d.leave || '') + '   Compaction equipment: ' + (d.equip || ''));
+    L.push('PNG: ' + (d.serial || '') + '   Density std: ' + (d.dstd || '') + '   Moisture std: ' + (d.mstd || ''));
+    L.push('');
+    L.push(['Test', 'Material', 'Proctor kg/m3', 'Type', 'Depth mm', 'DD kg/m3', 'MC %', 'WD kg/m3', 'Compaction %', 'Min req %', 'Proctor sample no.', 'Lift/Elev', 'Lift note', 'Lat', 'Lon', 'Location', 'E/W offset m', 'N/S offset m'].join('\t'));
+    Array.prototype.forEach.call(testsEl.children, function (el, i) {
+      var r = calc(el);
+      var g = function (k) { return val(el, k).replace(/\s+/g, ' '); };
+      L.push([i + 1, g('mat'), g('proc'), g('ptype'), g('depth'), g('dd'), g('mc'),
+        isFinite(r.wet) ? r.wet.toFixed(0) : '', isFinite(r.comp) ? r.comp.toFixed(1) : '',
+        g('minc'), g('psn'), g('lift'), g('liftnote'), g('lat'), g('lon'), g('locdesc'),
+        g('ew') ? g('ew') + ' ' + g('ewdir') : '', g('ns') ? g('ns') + ' ' + g('nsdir') : ''].join('\t'));
+    });
+    if (d.refname) L.push('', 'Reference point: ' + d.refname);
+    if ((d.notes || '').trim()) L.push('', 'Notes:', d.notes.trim());
+    return L.join('\n');
+  }
+
+  $('copy').addEventListener('click', function () {
+    var text = summaryText();
+    var ta = $('summary');
+    ta.value = text;
+    function fallback() { $('summary-wrap').hidden = false; ta.focus(); ta.select(); say('Select the text below and copy it.'); }
+    try {
+      navigator.clipboard.writeText(text).then(function () { say('Copied. Paste into a spreadsheet or email.'); }, fallback);
+    } catch (e) { fallback(); }
+  });
+
+  var clearBtn = $('clear'), clearTimer = null;
+  clearBtn.addEventListener('click', function () {
+    if (clearBtn.dataset.armed !== '1') {
+      clearBtn.dataset.armed = '1';
+      clearBtn.textContent = 'Tap again to erase everything';
+      clearTimer = setTimeout(function () { clearBtn.dataset.armed = ''; clearBtn.textContent = 'Clear form'; }, 4000);
+      return;
+    }
+    clearTimeout(clearTimer);
+    clearBtn.dataset.armed = ''; clearBtn.textContent = 'Clear form';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-h]'), function (i) { i.value = ''; });
+    testsEl.innerHTML = '';
+    addTest();
+    save(); draw();
+    say('Form cleared.');
+  });
+
+  function syncBase() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-base]'), function (b) {
+      b.setAttribute('aria-pressed', b.dataset.base === base ? 'true' : 'false');
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-base]') : null;
+    if (!b) return;
+    base = b.dataset.base;
+    try { localStorage.setItem('density-base', base); } catch (err) {}
+    syncBase();
+    draw();
+  });
+
+  /* ---------- table for chat (header + results, no maps) ---------- */
+  function mdCell(s) { return String(s || '').replace(/\s*\n\s*/g, '; ').replace(/\|/g, '/').trim(); }
+
+  function chatText() {
+    var h = collect().h, L = locData();
+    var onSite = (h.arrive || h.leave) ? (h.arrive || '') + ' to ' + (h.leave || '') : '';
+    var out = [
+      '- **Project:** ' + (h.project || '') + (h.number ? ' (' + h.number + ')' : ''),
+      '- **Date of site visit:** ' + (h.date || ''),
+      '- **Temperature:** ' + tempText(h) + ' | **Weather:** ' + (h.weather || ''),
+      '- **Time on site:** ' + onSite + ' | **Compaction equipment:** ' + (h.equip || ''),
+      '- **PNG serial number:** ' + (h.serial || '') + ' | **Density standard:** ' + (h.dstd || '') + ' | **Moisture standard:** ' + (h.mstd || ''),
+      '',
+      '| Test | Material | Proctor (kg/m³) | Proctor type | Probe depth (mm) | Dry density (kg/m³) | Moisture (%) | Wet density (kg/m³) | Compaction (%) | Min. required (%) | Proctor sample no. | Lift / elevation | Location |',
+      '|---|---|---|---|---|---|---|---|---|---|---|---|---|'
+    ];
+    Array.prototype.forEach.call(testsEl.children, function (el, i) {
+      var r = calc(el), g = function (k) { return val(el, k).trim(); };
+      var geo = cardGeo(el), rel = cardRel(el), loc = [], lift = [];
+      if (geo) loc.push(geo.lat.toFixed(6) + ', ' + geo.lon.toFixed(6));
+      if (rel) loc.push(fmtOff(rel) + (g('locdesc') ? ' of ' + g('locdesc') : ''));
+      else if (g('locdesc')) loc.push(g('locdesc'));
+      if (g('lift')) lift.push(g('lift'));
+      if (g('liftnote')) lift.push(g('liftnote'));
+      out.push('| ' + [ 'T' + (i + 1), g('mat'), g('proc'), g('ptype'), g('depth'), g('dd'), g('mc'),
+        isFinite(r.wet) ? r.wet.toFixed(0) : '', isFinite(r.comp) ? (r.st.k === 'ok' ? '🟢 ' : r.st.k === 'warn' ? '🟡 ' : r.st.k === 'bad' ? '🔴 ' : '') + r.comp.toFixed(1) : '',
+        g('minc'), g('psn'), lift.join('; '), loc.join('; ') ].map(mdCell).join(' | ') + ' |');
+    });
+    if ((h.notes || '').trim()) out.push('', '**Notes:**', '', mdNotes(h.notes));
+    return out.join('\n');
+  }
+
+  $('copy-chat').addEventListener('click', function () {
+    var text = chatText();
+    var ta = $('summary');
+    ta.value = text;
+    function fallback() { $('summary-wrap').hidden = false; ta.focus(); ta.select(); say('Select the text below and copy it.'); }
+    try {
+      navigator.clipboard.writeText(text).then(function () { say('Copied. Paste it into the chat and I will show it as a table.'); }, fallback);
+    } catch (e) { fallback(); }
+  });
+
+  /* ---------- AI review ---------- */
+  var sampler = null;
+  try {
+    if (window.claude && window.claude.use) window.claude.use('sample').then(function (m) { sampler = m; }, function () {});
+  } catch (e) {}
+
+  var BASE_RULES = 'You are editing text for a geotechnical density testing field report, in Canadian English. ' +
+    'The JSON below maps field ids to text. ' +
+    'Never change, add or remove any number, unit, measurement, test number (such as T3), code, ID, abbreviation, acronym or technical term (for example WGB, WP103, 25 mm minus, Proctor). ' +
+    'Do not translate. Never add information. If a text is already correct, return it unchanged. ';
+  var LIGHT_RULES = 'For every field, correct spelling, typos, grammar, capitalization and punctuation only. Keep the writer\'s wording and style. ';
+  var FULL_RULES = 'For the field "h-notes", do a full professional edit. Fix spelling, grammar, punctuation and capitalization, and use clear, concise, professional report wording. ' +
+    'Organize the content logically. Put separate observations or items into bullet points, each line starting with "- ". Put sequential steps or ranked items into a numbered list ("1.", "2."). ' +
+    'Use a short heading line ending with a colon only when the notes cover several distinct topics. If the notes are only one or two short sentences, just correct them and do not force a list. ' +
+    'You may reorder, merge, split or reword sentences, but you must keep every fact, number, test number, code, unit and instruction the writer gave, and you must not add anything: no new facts, causes, conclusions, recommendations, dates, times, locations, numbers, assumptions, filler or commentary. ' +
+    'When something is unclear, keep the writer\'s wording instead of guessing. Use plain text with line breaks only: no markdown bold or italics, no tables, no emojis. ' +
+    'Every other field gets spelling, grammar, capitalization and punctuation corrections only. ';
+  var OUT_RULE = 'Reply with only a JSON object that has exactly the same keys as the input, with the edited text as the values.\n\n';
+
+  var proofBackup = {};
+  var reviewed = {};
+  var proofMsgEl = $('proof-msg');
+
+  function stripList(t) {
+    return String(t).split('\n').map(function (l) { return l.replace(/^\s*(?:\d+[.)]|[-*•])\s+/, ''); }).join('\n');
+  }
+  function digitTokens(t) {
+    var m = stripList(t).match(/\b[A-Za-z0-9]*\d[A-Za-z0-9]*\b/g) || [];
+    return Array.from(new Set(m.map(function (x) { return x.toLowerCase(); }))).sort().join('|');
+  }
+  function upperTokensKept(ov, nv) {
+    var m = stripList(ov).match(/\b[A-Z]{2,}[A-Z0-9-]*\b/g) || [];
+    var low = nv.toLowerCase();
+    return m.every(function (x) { return low.indexOf(x.toLowerCase()) !== -1; });
+  }
+  function validProof(ov, nv, full) {
+    if (digitTokens(ov) !== digitTokens(nv)) return false;
+    if (!upperTokensKept(ov, nv)) return false;
+    var r = nv.length / ov.length;
+    return full ? (r >= 0.35 && nv.length <= ov.length * 2.5 + 80) : (r >= 0.6 && r <= 1.6);
+  }
+
+  function mdNotes(text) {
+    var out = [], prevList = false;
+    String(text || '').trim().split('\n').forEach(function (l) {
+      var t = l.trim();
+      if (!t) { if (out.length && out[out.length - 1] !== '') out.push(''); prevList = false; return; }
+      var isList = /^([-*•]|\d+[.)])\s+/.test(t);
+      if (!isList && out.length && out[out.length - 1] !== '') out.push('');
+      if (isList && !prevList && out.length && out[out.length - 1] !== '') out.push('');
+      out.push(isList ? t.replace(/^[*•]\s+/, '- ') : t);
+      prevList = isList;
+    });
+    return out.join('\n');
+  }
+
+  function proofTargets() {
+    var list = [];
+    ['h-weather', 'h-equip', 'h-notes'].forEach(function (id) { var el = $(id); if (el && el.value.trim()) list.push(el); });
+    Array.prototype.forEach.call(testsEl.children, function (card) {
+      ['mat', 'lift', 'liftnote'].forEach(function (k) {
+        var el = card.querySelector('[data-f="' + k + '"]');
+        if (el && el.value.trim()) list.push(el);
+      });
+    });
+    return list;
+  }
+
+  function labelFor(el) {
+    var l = document.querySelector('label[for="' + el.id + '"]');
+    var card = el.closest ? el.closest('.test') : null;
+    var pre = card ? 'T' + (Array.prototype.indexOf.call(testsEl.children, card) + 1) + ' ' : '';
+    return pre + (l ? l.textContent : el.id);
+  }
+
+  function renderProof(changes) {
+    var box = $('proof-list');
+    box.textContent = '';
+    changes.forEach(function (c) {
+      var d = document.createElement('div');
+      var b = document.createElement('b'); b.textContent = c.label + ':\n';
+      d.appendChild(b);
+      d.appendChild(document.createTextNode('Before:\n' + c.before + '\n\nAfter:\n' + c.after));
+      box.appendChild(d);
+    });
+    $('proof-undo').hidden = !Object.keys(proofBackup).length;
+  }
+
+  function proofread(full) {
+    if (!sampler) return Promise.resolve({ unavailable: true });
+    var els = proofTargets().filter(function (el) { return full || reviewed[el.id] !== el.value; });
+    if (!els.length) return Promise.resolve({ n: 0 });
+    var payload = {};
+    els.forEach(function (el) { payload[el.id] = el.value; });
+    var withNotes = full && payload['h-notes'] != null;
+    var prompt = BASE_RULES + (withNotes ? FULL_RULES : LIGHT_RULES) + OUT_RULE + JSON.stringify(payload);
+    return sampler.json(prompt, { modelTier: 'default' }).then(function (res) {
+      if (!res || typeof res !== 'object') return { failed: true };
+      var changes = [], skipped = [];
+      els.forEach(function (el) {
+        var nv = res[el.id], ov = el.value, isFull = withNotes && el.id === 'h-notes';
+        if (typeof nv !== 'string' || !nv.trim()) { reviewed[el.id] = ov; return; }
+        nv = nv.replace(/\s+$/, '');
+        if (nv === ov) { reviewed[el.id] = ov; return; }
+        if (!validProof(ov, nv, isFull)) { skipped.push(labelFor(el)); return; }
+        if (!proofBackup[el.id]) proofBackup[el.id] = { before: ov, after: nv };
+        else proofBackup[el.id].after = nv;
+        changes.push({ label: labelFor(el), before: ov, after: nv });
+        el.value = nv;
+        reviewed[el.id] = nv;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      renderProof(changes);
+      return { n: changes.length, skipped: skipped };
+    }, function (e) { return { failed: true, code: e && e.code }; });
+  }
+
+  function proofNote(r) {
+    if (r.unavailable) return '';
+    if (r.failed) return r.code === 'not_granted' ? 'AI review was not allowed, so the text was left as typed.' : 'AI review did not finish, so the text was left as typed.';
+    var t = r.n ? r.n + (r.n === 1 ? ' field edited.' : ' fields edited.') : 'No changes needed.';
+    if (r.skipped && r.skipped.length) t += ' Left as typed because the edit changed numbers or codes: ' + r.skipped.join(', ') + '.';
+    return t;
+  }
+
+  var NOTES_PROMPT = 'Please edit the field notes below for a geotechnical density testing report, in Canadian English. ' +
+    'Fix spelling, grammar, punctuation and capitalization, and use clear, concise, professional report wording. ' +
+    'Organize the content logically. Put separate observations or items into bullet points, each line starting with "- ". Put sequential steps or ranked items into a numbered list ("1.", "2."). ' +
+    'Use a short heading line ending with a colon only when the notes cover several distinct topics. If the notes are only one or two short sentences, just correct them and do not force a list. ' +
+    'You may reorder, merge, split or reword sentences, but keep every fact, number, test number, code, unit and instruction I gave, and do not add anything: no new facts, causes, conclusions, recommendations, dates, times, locations, numbers, assumptions, filler or commentary. ' +
+    'When something is unclear, keep my wording instead of guessing. Use plain text with line breaks only: no markdown bold or italics, no tables, no emojis. ' +
+    'Reply with only the edited notes.\n\nNotes:\n';
+
+  $('proof').addEventListener('click', function () {
+    var t = $('h-notes').value.trim();
+    if (!t) { proofMsgEl.textContent = 'Type your notes first.'; return; }
+    var text = NOTES_PROMPT + t;
+    function fb() { var ta = $('summary'); ta.value = text; $('summary-wrap').hidden = false; ta.focus(); ta.select(); proofMsgEl.textContent = 'Select the text below and copy it.'; }
+    try {
+      navigator.clipboard.writeText(text).then(function () {
+        proofMsgEl.textContent = 'Copied. When you are online, paste it into Claude, then paste the edited notes back into the Notes box.';
+      }, fb);
+    } catch (e) { fb(); }
+  });
+
+  $('proof-undo').addEventListener('click', function () {
+    Object.keys(proofBackup).forEach(function (id) {
+      var el = $(id);
+      if (el && el.value === proofBackup[id].after) {
+        el.value = proofBackup[id].before;
+        delete reviewed[id];
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    proofBackup = {};
+    renderProof([]);
+    proofMsgEl.textContent = 'Changes undone.';
+  });
+
+  /* ---------- PDF report ---------- */
+  var dl = null;
+  try {
+    if (window.claude && window.claude.use) window.claude.use('downloads').then(function (m) { dl = m; }, function () {});
+  } catch (e) {}
+
+  function saveFile(name, data, mime) {
+    if (dl) return dl.save({ filename: name, data: data });
+    var blob = data instanceof Blob ? data : new Blob([data], { type: mime || 'application/octet-stream' });
+    return new Promise(function (resolve, reject) {
+      try {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        resolve({ status: 'saved' });
+      } catch (e) { reject(e); }
+    });
+  }
+
+  function tempText(h) {
+    var a = (h.tlow || '').trim(), b = (h.thigh || '').trim();
+    if (a && b) return a + ' to ' + b + ' °C';
+    return a || b ? (a || b) + ' °C' : '';
+  }
+
+  function svgToPng(svg, w, h) {
+    return new Promise(function (resolve, reject) {
+      var im = new Image();
+      im.onload = function () {
+        var c = document.createElement('canvas');
+        c.width = w * 2; c.height = h * 2;
+        var g = c.getContext('2d');
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(im, 0, 0, c.width, c.height);
+        try { resolve(c.toDataURL('image/png')); } catch (e) { reject(e); }
+      };
+      im.onerror = function () { reject(new Error('Map image failed')); };
+      im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    });
+  }
+
+  function buildReport(noMaps) {
+    var JS = window.jspdf && window.jspdf.jsPDF;
+    if (!JS) return Promise.reject(new Error('The PDF library did not load. Check your connection and reload the page.'));
+    var h = collect().h, L = locData();
+    var viewSel = $('h-view') ? $('h-view').value : 'auto';
+    var useMap = viewSel === 'map' ? true : viewSel === 'sketch' ? false : L.geo.length > 0;
+    var views = [];
+    if (useMap) {
+      if (L.geo.length) views.push({ kind: 'map', title: 'Test locations: plan from coordinates (north up)', svg: plot(L.pts, null, 'Plan of test locations from coordinates', true), pts: L.geo });
+    } else {
+      L.groups.forEach(function (g) {
+        var nm = g.name.length > 60 ? g.name.slice(0, 59) + '…' : g.name;
+        views.push({ kind: 'sketch', title: 'Test locations: sketch from reference point "' + nm + '" (north up)', svg: plotSketch(g.pts, g.name, true), pts: g.pts, name: nm });
+      });
+    }
+    var soft = function (p) { return p.catch(function () { return null; }); };
+    return Promise.all(views.map(function (v) { return soft(svgToPng(v.svg, 640, 440)); })).then(function (imgs) {
+      var doc = new JS({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+      if (typeof doc.autoTable !== 'function') throw new Error('The PDF table library did not load. Check your connection and reload the page.');
+      var PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight(), M = 12;
+      var INK = [27, 36, 32], ACC = [14, 106, 88], SOFT = [236, 240, 237], LINE = [211, 218, 213];
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(INK[0], INK[1], INK[2]);
+      doc.text('Density Testing Report', M, M + 5);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 103, 97);
+      doc.text('Nuclear gauge field record', PW - M, M + 5, { align: 'right' });
+      doc.setDrawColor(ACC[0], ACC[1], ACC[2]); doc.setLineWidth(0.6); doc.line(M, M + 8, PW - M, M + 8);
+
+      var onSite = (h.arrive || h.leave) ? (h.arrive || '') + ' to ' + (h.leave || '') : '';
+      doc.autoTable({
+        startY: M + 12, theme: 'grid', margin: { left: M, right: M },
+        body: [
+          ['Project', h.project || '', 'Project number', h.number || ''],
+          ['Date of site visit', h.date || '', 'PNG serial number', h.serial || ''],
+          ['Temperature', tempText(h), 'Density standard count', h.dstd || ''],
+          ['Weather', h.weather || '', 'Moisture standard count', h.mstd || ''],
+          ['Time on site', onSite, 'Compaction equipment', h.equip || '']
+        ],
+        styles: { fontSize: 9, cellPadding: 1.8, textColor: INK, lineColor: LINE, lineWidth: 0.2 },
+        columnStyles: { 0: { fontStyle: 'bold', fillColor: SOFT, cellWidth: 38 }, 2: { fontStyle: 'bold', fillColor: SOFT, cellWidth: 46 } }
+      });
+
+      var rows = [], stats = [];
+      Array.prototype.forEach.call(testsEl.children, function (el, i) {
+        var r = calc(el), g = function (k) { return val(el, k).trim(); };
+        var geo = cardGeo(el), rel = cardRel(el), loc = [], lift = [];
+        if (geo) loc.push(geo.lat.toFixed(6) + ', ' + geo.lon.toFixed(6));
+        if (rel) loc.push(fmtOff(rel) + (g('locdesc') ? ' of ' + g('locdesc') : ''));
+        else if (g('locdesc')) loc.push(g('locdesc'));
+        if (g('lift')) lift.push(g('lift'));
+        if (g('liftnote')) lift.push(g('liftnote'));
+        stats.push(r.st); rows.push(['T' + (i + 1), g('mat'), g('proc'), g('ptype'), g('depth'), g('dd'), g('mc'),
+          isFinite(r.wet) ? r.wet.toFixed(0) : '', isFinite(r.comp) ? r.comp.toFixed(1) : '',
+          g('minc'), g('psn'), lift.join('\n'), loc.join('\n')]);
+      });
+
+      var y = doc.lastAutoTable.finalY + 8;
+      if (y > PH - 50) { doc.addPage(); y = M + 6; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(INK[0], INK[1], INK[2]);
+      doc.text('Test results', M, y);
+      var ctr = { halign: 'center' };
+      doc.autoTable({
+        startY: y + 3, theme: 'grid', margin: { left: M, right: M, bottom: 14 },
+        head: [['Test', 'Material', 'Proctor (kg/m³)', 'Proctor type', 'Probe depth (mm)', 'Dry density (kg/m³)', 'Moisture (%)', 'Wet density (kg/m³)', 'Compaction (%)', 'Min. required (%)', 'Proctor sample no.', 'Lift / elevation', 'Location']],
+        body: rows,
+        headStyles: { fillColor: ACC, textColor: 255, fontSize: 8, halign: 'center', valign: 'middle' },
+        styles: { fontSize: 8.5, cellPadding: 1.6, valign: 'top', textColor: INK, lineColor: LINE, lineWidth: 0.2 },
+        columnStyles: { 0: { halign: 'center', cellWidth: 10, fontStyle: 'bold' }, 1: { cellWidth: 22 }, 2: Object.assign({ cellWidth: 16 }, ctr), 3: Object.assign({ cellWidth: 15 }, ctr), 4: Object.assign({ cellWidth: 14 }, ctr), 5: Object.assign({ cellWidth: 19 }, ctr), 6: Object.assign({ cellWidth: 16 }, ctr), 7: Object.assign({ cellWidth: 19 }, ctr), 8: Object.assign({ cellWidth: 20, fontStyle: 'bold' }, ctr), 9: Object.assign({ cellWidth: 16 }, ctr), 10: Object.assign({ cellWidth: 20 }, ctr), 11: { cellWidth: 32 } },
+        didParseCell: function (d) {
+          if (d.section === 'body' && d.column.index === 8) {
+            var st = stats[d.row.index];
+            var pal = { ok: [212, 237, 219, 20, 83, 45], warn: [249, 231, 172, 107, 74, 0], bad: [245, 208, 201, 127, 29, 18] }[st && st.k];
+            if (pal) {
+              d.cell.styles.fillColor = [pal[0], pal[1], pal[2]];
+              d.cell.styles.textColor = [pal[3], pal[4], pal[5]];
+              d.cell.text = d.cell.text.concat([st.t]);
+            }
+          }
+        }
+      });
+
+      var notesTxt = (h.notes || '').trim();
+      if (notesTxt) {
+        var ny = doc.lastAutoTable.finalY + 8;
+        if (ny > PH - 30) { doc.addPage(); ny = M + 6; }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(INK[0], INK[1], INK[2]);
+        doc.text('Notes', M, ny);
+        var ly = ny + 6, LH = 4.6, maxW = PW - 2 * M;
+        notesTxt.split('\n').forEach(function (raw) {
+          var t = raw.replace(/\s+$/, '');
+          if (!t.trim()) { ly += 2.5; return; }
+          var bm = /^\s*[-*•]\s+(.*)$/.exec(t), nm = /^\s*(\d+)[.)]\s+(.*)$/.exec(t);
+          var body = t.trim(), marker = '', indent = 0, bold = false, dot = false;
+          if (bm) { body = bm[1]; indent = 6; dot = true; }
+          else if (nm) { body = nm[2]; indent = 8; marker = nm[1] + '.'; }
+          else if (/:$/.test(body) && body.length < 80) { bold = true; ly += 1.5; }
+          doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(9.5); doc.setTextColor(INK[0], INK[1], INK[2]);
+          var wrapped = doc.splitTextToSize(body, maxW - indent);
+          if (ly + wrapped.length * LH > PH - 16) { doc.addPage(); ly = M + 6; doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(9.5); doc.setTextColor(INK[0], INK[1], INK[2]); }
+          if (dot) { doc.setFillColor(INK[0], INK[1], INK[2]); doc.circle(M + 2, ly - 1.2, 0.6, 'F'); }
+          if (marker) doc.text(marker, M, ly);
+          wrapped.forEach(function (ln) { doc.text(ln, M + indent, ly); ly += LH; });
+        });
+      }
+
+      views.forEach(function (v, vi) {
+        var isMap = v.kind === 'map', locImg = imgs[vi], locPts = v.pts;
+        doc.addPage();
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(INK[0], INK[1], INK[2]);
+        doc.text(v.title, M, M + 4);
+        var top = M + 11, imgW = 165, imgH = imgW * 440 / 640;
+        if (locImg) {
+          doc.addImage(locImg, 'PNG', M, top, imgW, imgH);
+          var KEYS = [['Meets spec', [47, 158, 95]], ['Marginal', [224, 168, 0]], ['Below spec', [208, 58, 42]], ['No minimum entered', [122, 134, 128]]];
+          var kx = M, ky = top + imgH + 6;
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(INK[0], INK[1], INK[2]);
+          KEYS.forEach(function (e) {
+            doc.setFillColor(e[1][0], e[1][1], e[1][2]); doc.circle(kx + 1.6, ky - 1, 1.6, 'F');
+            doc.text(e[0], kx + 5, ky);
+            kx += 9 + doc.getTextWidth(e[0]) + 3;
+          });
+          var PAL = { ok: [212, 237, 219, 20, 83, 45], warn: [249, 231, 172, 107, 74, 0], bad: [245, 208, 201, 127, 29, 18] };
+          doc.autoTable({
+            startY: top, theme: 'striped', tableWidth: PW - 2 * M - imgW - 8, margin: { left: M + imgW + 8, right: M, bottom: 14 },
+            head: [['Test', isMap ? 'Latitude, longitude' : 'Offset from ' + v.name, 'Compaction (%)']],
+            body: locPts.map(function (q) { return ['T' + q.i, isMap ? q.lat.toFixed(6) + ', ' + q.lon.toFixed(6) : fmtOff(q), q.c]; }),
+            headStyles: { fillColor: ACC, textColor: 255, fontSize: 8 },
+            styles: { fontSize: 8.5, cellPadding: 1.5, textColor: INK },
+            columnStyles: { 0: { cellWidth: 12, fontStyle: 'bold' }, 2: { cellWidth: 24, halign: 'center' } },
+            didParseCell: function (d) {
+              if (d.section === 'body' && d.column.index === 2) {
+                var pt = locPts[d.row.index], pal = PAL[pt && pt.k];
+                if (pal) {
+                  d.cell.styles.fillColor = [pal[0], pal[1], pal[2]];
+                  d.cell.styles.textColor = [pal[3], pal[4], pal[5]];
+                  d.cell.text = d.cell.text.concat([pt.t]);
+                }
+              }
+            }
+          });
+        } else {
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+          doc.text('The drawing could not be created.', M, top + 6);
+        }
+      });
+
+      var pages = doc.getNumberOfPages();
+      for (var p = 1; p <= pages; p++) {
+        doc.setPage(p); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110, 120, 115);
+        doc.text(((h.project || '') + (h.number ? ' - ' + h.number : '')).trim(), M, PH - 6);
+        doc.text('Page ' + p + ' of ' + pages, PW - M, PH - 6, { align: 'right' });
+      }
+      return doc.output('blob');
+    });
+  }
+
+  function reportName() {
+    var h = collect().h;
+    var tag = (h.number || h.project || 'draft').trim().replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'draft';
+    return 'Density-Report-' + tag + (h.date ? '-' + h.date : '') + '.pdf';
+  }
+
+  $('report').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    var note = '';
+    say('Preparing report...');
+    proofread(false).then(function (r) {
+      note = ' ' + proofNote(r);
+      proofMsgEl.textContent = proofNote(r);
+      say('Building report...');
+      return buildReport();
+    }).then(function (blob) {
+      return saveFile(reportName(), blob, 'application/pdf');
+    }).then(function () {
+      say('Report ready.' + note);
+    }, function (err) {
+      say(err && err.code === 'declined' ? 'Save cancelled.' : 'Could not create the report. ' + ((err && err.message) || ''));
+    }).then(function () { btn.disabled = false; });
+  });
+
+  /* ---------- KML for Google Maps / Earth ---------- */
+  function xmlEsc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c];
+    });
+  }
+
+  function kmlText() {
+    var h = collect().h;
+    var icon = { ok: 'grn', warn: 'ylw', bad: 'red', none: 'wht' };
+    var marks = [];
+    Array.prototype.forEach.call(testsEl.children, function (el, i) {
+      var g = cardGeo(el);
+      if (!g) return;
+      var r = calc(el), f = function (k) { return val(el, k).trim(); };
+      var parts = [];
+      if (isFinite(r.comp)) parts.push('Compaction ' + r.comp.toFixed(1) + '%' + (f('minc') ? ' (min ' + f('minc') + '%)' : '') + (r.st.t ? ' - ' + r.st.t : ''));
+      if (f('dd')) parts.push('Dry density ' + f('dd') + ' kg/m3');
+      if (f('mc')) parts.push('Moisture ' + f('mc') + '%');
+      if (isFinite(r.wet)) parts.push('Wet density ' + r.wet.toFixed(0) + ' kg/m3');
+      if (f('proc')) parts.push('Proctor ' + f('proc') + ' kg/m3 (' + f('ptype') + ')');
+      if (f('psn')) parts.push('Proctor sample no. ' + f('psn'));
+      if (f('mat')) parts.push('Material: ' + f('mat'));
+      if (f('depth')) parts.push('Probe depth ' + f('depth') + ' mm');
+      if (f('lift')) parts.push('Lift/elevation: ' + f('lift'));
+      if (f('locdesc')) parts.push('Reference point: ' + f('locdesc'));
+      var html = parts.map(xmlEsc).join('<br>');
+      marks.push('<Placemark><name>T' + (i + 1) + '</name><description>' + xmlEsc(html) + '</description><styleUrl>#s-' + (r.st.k || 'none') + '</styleUrl><Point><coordinates>' + g.lon.toFixed(6) + ',' + g.lat.toFixed(6) + ',0</coordinates></Point></Placemark>');
+    });
+    if (!marks.length) return '';
+    var title = ((h.project || 'Density tests') + (h.number ? ' (' + h.number + ')' : '') + (h.date ? ' ' + h.date : '')).trim();
+    var styles = Object.keys(icon).map(function (k) {
+      return '<Style id="s-' + k + '"><IconStyle><scale>1.1</scale><Icon><href>https://maps.google.com/mapfiles/kml/paddle/' + icon[k] + '-blank.png</href></Icon></IconStyle></Style>';
+    }).join('');
+    return '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>' + xmlEsc(title) + '</name>' + styles + marks.join('') + '</Document></kml>';
+  }
+
+  $('mymaps').addEventListener('click', function () {
+    var kml = kmlText();
+    if (!kml) { say('Enter latitude and longitude on at least one test first.'); return; }
+    var h = collect().h;
+    var tag = (h.number || h.project || 'tests').trim().replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'tests';
+    saveFile('Density-Points-' + tag + (h.date ? '-' + h.date : '') + '.kml', kml, 'application/vnd.google-earth.kml+xml').then(
+      function () { say('KML file saved. Open it in Google Earth, or import it into Google My Maps.'); },
+      function () { say('Could not save the KML file.'); });
+  });
+
+  /* ---------- project files ---------- */
+  function loadData(d) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-h]'), function (i) {
+      var v = d.h && d.h[i.dataset.h] != null ? d.h[i.dataset.h] : '';
+      if (i.tagName === 'SELECT') { i.value = v; if (i.selectedIndex < 0) i.selectedIndex = 0; } else i.value = v;
+    });
+    testsEl.innerHTML = '';
+    var list = Array.isArray(d.t) ? d.t : [];
+    if (list.length) list.forEach(function (x) { addTest(x); }); else addTest();
+    save(); draw();
+  }
+
+  $('save-proj').addEventListener('click', function () {
+    var h = collect().h;
+    var tag = (h.number || h.project || 'project').trim().replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'project';
+    saveFile('Density-Project-' + tag + (h.date ? '-' + h.date : '') + '.json', JSON.stringify(collect(), null, 1), 'application/json').then(
+      function () { say('Project file saved. Keep it as a backup or open it on another device.'); },
+      function () { say('Could not save the project file.'); });
+  });
+  $('load-proj').addEventListener('click', function () { $('load-file').click(); });
+  $('load-file').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var d = JSON.parse(rd.result);
+        if (!d || typeof d !== 'object' || !d.h) throw new Error('bad');
+        loadData(d);
+        say('Project file opened. The form now shows its data.');
+      } catch (err) { say('That file is not a density project file.'); }
+      e.target.value = '';
+    };
+    rd.readAsText(f);
+  });
+
+  /* ---------- offline support ---------- */
+  var swReady = false;
+  var JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  function netState() {
+    var label = navigator.onLine ? 'Online' : 'Offline';
+    function done(ok) { $('net').textContent = label + ' · ' + (ok ? 'ready for offline use' : 'open once online to finish offline setup'); }
+    if (!('caches' in window)) { done(false); return; }
+    caches.match(JSPDF_URL).then(function (hit) { done(!!hit && swReady); }, function () { done(false); });
+  }
+  window.addEventListener('online', netState);
+  window.addEventListener('offline', netState);
+  netState();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+    navigator.serviceWorker.ready.then(function () { swReady = true; setTimeout(netState, 1500); });
+  }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  var deferredInstall = null;
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredInstall = e; $('install').hidden = false; });
+  $('install').addEventListener('click', function () {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(function () { deferredInstall = null; $('install').hidden = true; });
+  });
+  window.addEventListener('appinstalled', function () { $('install').hidden = true; });
+
+  syncBase();
+  restore();
+  draw();
+})();
+</script>
+</body>
+</html>
